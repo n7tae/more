@@ -20,15 +20,15 @@ ifeq ($(USE_TS), false)
 CPPFLAGS += -DNO_TS
 endif
 
-ifeq ($(USE_DHT), true)
-CPPFLAGS += -DDHT
+ifeq ($(USE_DHT), false)
+CPPFLAGS += -DNO_DHT
 endif
 
-ifeq ($(USE_DVREF), true)
-CPPFLAGS += -DDVREF
+ifeq ($(USE_DVREF), false)
+CPPFLAGS += -DNO_DVREF
 endif
 
-LIBS    = -pthread -lm -lgpiod -lsqlite3
+LIBS = -pthread -lm -lgpiod -lsqlite3
 
 SRCS = $(wildcard srcs/*.cpp)
 OBJS = $(SRCS:.cpp=.o)

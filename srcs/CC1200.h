@@ -44,7 +44,7 @@ using SConfig = struct config_tag
 	unsigned can;
 	int freqCorr;
 	float power;
-	bool afc, isV3, debug;
+	bool afc, debug;
 };
 
 enum err_t

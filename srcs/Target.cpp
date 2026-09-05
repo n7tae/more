@@ -21,13 +21,12 @@
 
 extern CMspotDB g_DataBase;
 
-void CTarget::TargetInit(const CCallsign &callsign, ERefType eRef, EDataType type, ETypeVersion version, const std::string m, const std::string ms, CSockAddress &sa, const CCallsign &mspot)
+void CTarget::TargetInit(const CCallsign &callsign, ERefType eRef, EDataType type, const std::string m, const std::string ms, CSockAddress &sa, const CCallsign &mspot)
 {
 	state = ELinkState::unlinked;
 	cs = callsign;
 	eRefType = eRef;
 	eDataType = type;
-	eTypeVersion = version;
 	mods.assign(m);
 	smods.assign(ms);
 	addr = sa;

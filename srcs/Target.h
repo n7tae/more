@@ -27,16 +27,14 @@
 enum class ELinkState    { unlinked, linking, linked };
 enum class EInternetType { ipv4only, ipv6only, both };
 enum class EDataType     { str_only, pkt_only, both };
-enum class ETypeVersion  { deprecated, v3, both };
 
 class CTarget : public CBase
 {
 public:
 	// initialization
-	void TargetInit(const CCallsign &cs, ERefType eRef, EDataType dType, ETypeVersion tVersion, const std::string m, const std::string ms, CSockAddress &sa, const CCallsign &mspot);
+	void TargetInit(const CCallsign &cs, ERefType eRef, EDataType dType, const std::string m, const std::string ms, CSockAddress &sa, const CCallsign &mspot);
 	// get various target data
 	const CCallsign &GetCS(void) const { return cs; }
-	ETypeVersion GetTypeVersion(void) const { return eTypeVersion; }
 	EDataType GetDataType(void) const { return eDataType; }
 	ELinkState GetState(void) const { return state; }
 	ERefType GetType(void) const { return eRefType; }
@@ -61,6 +59,5 @@ private:
 	CSteadyTimer receivePingTimer;
 	ERefType eRefType;
 	EDataType eDataType;
-	ETypeVersion eTypeVersion;
 };
 

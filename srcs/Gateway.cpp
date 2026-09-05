@@ -15,7 +15,7 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#ifdef DVREF
+#ifndef NO_DVREF
 #include <curl/curl.h>
 #include <sys/stat.h>
 #endif
@@ -40,7 +40,7 @@
 #include "Gateway.h"
 #include "Random.h"
 #include "CRC.h"
-#ifdef DHT
+#ifndef NO_DHT
 #include "dht-values.h"
 #endif
 
@@ -101,7 +101,7 @@ constexpr uint64_t CalcCSCode(const char *cs)
 
 void CGateway::Stop()
 {
-	#ifdef DHT
+	#ifndef NO_DHT
 	stopDHT();
 	#endif
 	Log(EUnit::gate, "stopping the Gateway...\n");
@@ -121,13 +121,13 @@ bool CGateway::Start()
 	// Prepare the sqlite3 database
 	if (g_DataBase.Open(g_Cfg.GetString(g_Keys.gateway.section, g_Keys.gateway.dbPath).c_str()))
 		return true;
-	#ifdef DHT
+	#ifndef NO_DHT
 	if (startDHT())
 		return true;
 	#endif
 	// Get the hostfiles.refcheck.radio path, and maybe update the file, and then parse it and add it to the database
 	int n;
-	#ifdef DVREF
+	#ifndef NO_DVREF
 	std::filesystem::path jsonPath(g_Cfg.GetString(g_Keys.gateway.section, g_Keys.gateway.jsonHostPath));
 	updateJsonHostFile(jsonPath);
 	n = g_DataBase.ParseJsonFile(jsonPath.c_str());
@@ -209,7 +209,6 @@ bool CGateway::Start()
 	can = g_Cfg.GetUnsigned(g_Keys.repeater.section, g_Keys.repeater.can);
 	Log(EUnit::gate, "CAN = %u\n", unsigned(can));
 	// Set the TYPE format for the h/s transmitter
-	radioTypeIsV3 = g_Cfg.GetBoolean(g_Keys.repeater.section, g_Keys.repeater.radioTypeIsV3);
 	Log(EUnit::gate, "Radio is using %s TYPE values\n", radioTypeIsV3 ? "V#3" : "V#2");
 
 	keep_running = true;
@@ -504,7 +503,7 @@ void CGateway::processModem()
 					break;
 				case ELinkState::unlinked:
 					if (ERefType::none != eReflectorType) {
-						#ifdef DHT
+						#ifndef NO_DHT
 						get(dst.GetCS(ERefType::m17==eReflectorType ? 7 : 6));
 						#endif
 						if (setDestination(dst)) {
@@ -580,7 +579,7 @@ void CGateway::processModem()
 					case ELinkState::unlinked:
 						if (ERefType::none != eReflectorType) {
 							wait4end(p);
-							#ifdef DHT
+							#ifndef NO_DHT
 							get(dst.GetCS(ERefType::m17 == eReflectorType ? 7 : 6));
 							#endif
 							if (setDestination(dst))
@@ -619,8 +618,7 @@ void CGateway::sendLinkRequest()
 {
 	// make a CONN packet
 	SM17RefPacket conn;
-	memcpy(conn.magic, "CON", 3);
-	conn.magic[3] = (ETypeVersion::deprecated == target.GetTypeVersion()) ? 'N' : '3';
+	memcpy(conn.magic, "CONN", 4);
 	thisCS.CodeOut(conn.cscode);
 	conn.mod = target.GetCS().GetModule();
 	// send the link request
@@ -735,22 +733,6 @@ void CGateway::sendPacket2Modem(std::unique_ptr<CPacket> p)
 // this also opens and closes the modemStream
 void CGateway::sendPacket2Dest(std::unique_ptr<CPacket> p)
 {
-	CFrameType TYPE(p->GetFrameType());
-	if (EVersionType::v3 == TYPE.GetVersion())
-	{
-		if (ETypeVersion::deprecated == target.GetTypeVersion()) {
-			// the target requires legacy type
-			p->SetFrameType(TYPE.GetFrameType(EVersionType::legacy));
-			p->CalcCRC();
-		} 
-	} else {
-		// the packet is using Legacy type
-		if (ETypeVersion::deprecated != target.GetTypeVersion()) {
-			// the target needs V3 TYPE
-			p->SetFrameType(TYPE.GetFrameType(EVersionType::v3));
-			p->CalcCRC();
-		}
-	}
 	// TODO: -----------------------------------------------------------------
 	if (EPacketType::packet == p->GetType())
 	{
@@ -771,7 +753,7 @@ void CGateway::sendPacket2Dest(std::unique_ptr<CPacket> p)
 		{	// Here's the next stream packet
 			auto islast = p->IsLastPacket();
 			p->CalcCRC();
-			if ((p->GetFrameNumber()%6 == 0) and (TYPE.GetMetaDataType()==EMetaDatType::gnss))
+			if ((p->GetFrameNumber()%6 == 0) and (CFrameType(p->GetFrameType()).GetMetaDataType() == EMetaDatType::gnss))
 			{
 				CPosition position(p->GetCMetaData());
 				std::string la, lo;
@@ -834,10 +816,9 @@ bool CGateway::setDestination(const CCallsign &callsign)
 	else
 		csstr.assign(callsign.c_str(), ERefType::m17==eRefType ? 7 : 6);
 	EDataType dType;
-	ETypeVersion tVersion;
 	std::string mods, smods;
 	CSockAddress addr;
-	if (g_DataBase.GetTarget(csstr.c_str(), dType, tVersion, mods, smods, addr))
+	if (g_DataBase.GetTarget(csstr.c_str(), dType, mods, smods, addr))
 	{
 		std::string datatype, versiontype;
 		switch (dType)
@@ -845,12 +826,6 @@ bool CGateway::setDestination(const CCallsign &callsign)
 			case EDataType::pkt_only: datatype.assign("Pkt-only");  break;
 			case EDataType::str_only: datatype.assign("Str-only");  break;
 			default:                  datatype.assign("Pkt & Str"); break;
-		}
-		switch (tVersion)
-		{
-			case ETypeVersion::deprecated: versiontype.assign("Legacy-only");  break;
-			case ETypeVersion::v3:         versiontype.assign("V#3-only");     break;
-			default:                       versiontype.assign("Legacy & V#3"); break;
 		}
 		Log(EUnit::gate, "Found %s with IP adress %s on port %u\n", csstr.c_str(), addr.GetAddress(), addr.GetPort());
 		Log(EUnit::gate, "Capabilites for %s: Data Handling: %s TYPE Handling: %s\n", csstr.c_str(), datatype.c_str(), versiontype.c_str());
@@ -871,7 +846,7 @@ bool CGateway::setDestination(const CCallsign &callsign)
 					Log(EUnit::gate, "WARNING: Reflector module %s is not transcoded\n", callsign.c_str());
 			}
 		}
-		target.TargetInit(callsign, eRefType, dType, tVersion, mods, smods, addr, thisCS);
+		target.TargetInit(callsign, eRefType, dType, mods, smods, addr, thisCS);
 		return true;
 	}
 	Log(EUnit::gate, "Host '%s' not found\n", csstr.c_str());
@@ -1022,7 +997,7 @@ unsigned CGateway::PlayVoiceFiles(std::string message)
 	master.SetStreamId(g_RNG.Get());
 	memset(master.GetDstAddress(), 0xffu, 6); // set destination to BROADCAST
 	thisCS.CodeOut(master.GetSrcAddress());
-	master.SetFrameType(ft.GetFrameType(radioTypeIsV3 ? EVersionType::v3 : EVersionType::legacy));
+	master.SetFrameType(ft.GetFrameType());
 
 	auto clock = std::chrono::steady_clock::now(); // start the packet clock
 	std::ifstream ifile;
@@ -1174,7 +1149,7 @@ EPacketType CGateway::validate(uint8_t *in, unsigned length)
 	return EPacketType::none;
 }
 
-#ifdef DVREF
+#ifndef NO_DVREF
 // callback function writes data to a std::ostream
 static size_t data_write(void* buf, size_t size, size_t nmemb, void* userp)
 {
@@ -1231,7 +1206,7 @@ void CGateway::updateJsonHostFile(std::filesystem::path &jsonHostPath)
 	curl_global_init(CURL_GLOBAL_ALL);
 
 	std::stringstream ss;
-	const std::string url("https://hostfiles.refcheck.radio/M17Hosts.json");
+	const std::string url("https://m17-project.github.io/hostfiles/M17Hosts.json");
 	if(CURLE_OK == curl_read(url, ss))
 	{
 		Log(EUnit::gate, "Refreshing %s\n", jsonHostPath.c_str());
@@ -1250,7 +1225,7 @@ void CGateway::updateJsonHostFile(std::filesystem::path &jsonHostPath)
 }
 #endif
 
-#ifdef DHT
+#ifndef NO_DHT
 void CGateway::get(const std::string &cs)
 {
 	static std::time_t ts;

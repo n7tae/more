@@ -272,7 +272,7 @@ void CGateway::doPlay(char c)
 	master.SetStreamId(g_RNG.Get());
 	memset(master.GetDstAddress(), 0xffu, 6); // set destination to Broadcast
 	thisCS.CodeOut(master.GetSrcAddress());
-	master.SetFrameType(ft.GetFrameType(radioTypeIsV3 ? EVersionType::v3 : EVersionType::legacy));
+	master.SetFrameType(ft.GetFrameType());
 
 	std::ifstream ifs(pathname, std::ios::binary);
 	auto clock = std::chrono::steady_clock::now(); // start the packet clock

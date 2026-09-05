@@ -25,7 +25,7 @@
 #include <vector>
 #include <mutex>
 #include <queue>
-#ifdef DHT
+#ifndef NO_DHT
 #include <opendht.h>
 #endif
 
@@ -115,7 +115,7 @@ private:
 	std::unique_ptr<SMessageTask> msgTask;
 	std::queue<CPayload> playbackQueue;
 	// dht
-	#ifdef DHT
+	#ifndef NO_DHT
 	dht::DhtRunner node;
 	dht::Value nodeValue;
 	void get(const std::string &cs);
@@ -123,7 +123,7 @@ private:
 	void stopDHT(void);
 	#endif
 
-	#ifdef DVREF
+	#ifndef NO_DVREF
 	void updateJsonHostFile(std::filesystem::path &jsonFile);
 	#endif
 	void processGateway();

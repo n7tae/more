@@ -13,13 +13,12 @@ WWWDIR = /usr/local/www
 # For example, if you are planning to run mspot from the command line, set USE_TS to true.
 USE_TS = false
 
-# Do you want to find IP addresses for URF and M17 reflectors using the M17Host.json file
-# from hostfiles.refcheck.radio? Reflectors are registered at DVRef.com.
-USE_DVREF = false
+# Do you want to find IP addresses for URF and M17 reflectors that are registered at DVRef.com.
+USE_DVREF = true
 
-# If want to IP address (and other important info) for URF and M17 reflectors to come from
-# the Ham-DHT, then make sure you have installed the OpenDht library, and set this to true.
-USE_DHT = false
+# If want IP address (and other important info) for URF and M17 reflectors to come from
+# target reflector, then make sure you have installed the OpenDht library, and set this to true.
+USE_DHT = true
 
 # DEBUG is for software debugging support.
 # if mspot is crashing or locking up, set this to true and run it manually.

@@ -128,8 +128,6 @@ bool CConfigure::ReadData(const std::string &path)
 					data[g_Keys.repeater.section][g_Keys.repeater.module] = getString(value, g_Keys.repeater.module, rval);
 				else if (0 == key.compare(g_Keys.repeater.can))
 					data[g_Keys.repeater.section][g_Keys.repeater.can] = getUnsigned(value, "Channel Access Number", 0u, 15u, 0u);
-				else if (0 == key.compare(g_Keys.repeater.radioTypeIsV3))
-					data[g_Keys.repeater.section][g_Keys.repeater.radioTypeIsV3] = IS_TRUE(value[0]);
 				else if (0 == key.compare(g_Keys.repeater.debug))
 					data[g_Keys.repeater.section][g_Keys.repeater.debug] = IS_TRUE(value[0]);
 				else
@@ -243,7 +241,6 @@ bool CConfigure::ReadData(const std::string &path)
 		data[g_Keys.repeater.section][g_Keys.repeater.module] = std::string(1, mod);
 	}
 	isDefined(ErrorLevel::fatal, g_Keys.repeater.section, g_Keys.repeater.can,          rval);
-	isDefined(ErrorLevel::fatal, g_Keys.repeater.section, g_Keys.repeater.radioTypeIsV3,rval);
 	isDefined(ErrorLevel::fatal, g_Keys.repeater.section, g_Keys.repeater.debug,        rval);
 
 	// Modem section
@@ -295,7 +292,7 @@ bool CConfigure::ReadData(const std::string &path)
 			std::cout << "WARNING: [" << g_Keys.gateway.section << "]" << g_Keys.gateway.startupLink << "doesn't look like a reflector module" << std::endl;
 		}
 	}
-	#ifdef DVREF
+	#ifndef NO_DVREF
 	if (isDefined(ErrorLevel::mild, g_Keys.gateway.section, g_Keys.gateway.jsonHostPath, rval))
 	{
 		const auto path = GetString(g_Keys.gateway.section, g_Keys.gateway.jsonHostPath);
@@ -325,7 +322,7 @@ bool CConfigure::ReadData(const std::string &path)
 	}
 
 	// DHT sectopm
-	#ifdef DHT
+	#ifndef NO_DHT
 	isDefined(ErrorLevel::fatal, g_Keys.dht.section, g_Keys.dht.bootStrap, rval);
 	if (isDefined(ErrorLevel::fatal, g_Keys.dht.section, g_Keys.dht.dhtSavePath, rval))
 	{

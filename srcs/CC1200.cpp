@@ -224,7 +224,6 @@ bool CCC1200::loadConfig()
 	cfg.freqCorr = g_Cfg.GetInt     (g_Keys.modem.section,    g_Keys.modem.freqCorr);
 	cfg.power    = g_Cfg.GetFloat   (g_Keys.modem.section,    g_Keys.modem.txPower);
 	cfg.afc      = g_Cfg.GetBoolean (g_Keys.modem.section,    g_Keys.modem.afc);
-	cfg.isV3     = g_Cfg.GetBoolean (g_Keys.repeater.section, g_Keys.repeater.radioTypeIsV3);
 	cfg.debug    = g_Cfg.GetBoolean (g_Keys.modem.section,    g_Keys.modem.debug);
 	cfg.callSign.CSIn(g_Cfg.GetString(g_Keys.repeater.section, g_Keys.repeater.callsign));
 	cfg.callSign.SetModule(g_Cfg.GetString(g_Keys.repeater.section, g_Keys.repeater.module).at(0));
@@ -817,8 +816,7 @@ void CCC1200::txProcess()
 					memcpy(txlsf.GetData(), p->GetCDstAddress(), 12); // copy the dst & src
 					txType.SetFrameType(p->GetFrameType());           // get the TYPE
 					txType.SetMetaDataType(EMetaDatType::ecd);        // set the META to extended c/s data
-					// the next line will set the frame TYPE according to the configured user's radio
-					txlsf.SetFrameType(txType.GetFrameType(cfg.isV3 ? EVersionType::v3 : EVersionType::legacy));
+					txlsf.SetFrameType(txType.GetFrameType());
 					auto meta = txlsf.GetMetaData();                  // save the address to the meta array
 					memcpy(meta, p->GetCSrcAddress(), 6);             // save the source address into slot 1
 					g_Gateway.GetLink().CodeOut(meta+6);              // put the linked reflect into slot 2
@@ -868,7 +866,7 @@ void CCC1200::txProcess()
 						// make a LSF from the LSD in this packet
 						memcpy(txlsf.GetData(), p->GetCDstAddress(), 28);
 						txType.SetFrameType(p->GetFrameType());
-						p->SetFrameType(txType.GetFrameType(cfg.isV3 ? EVersionType::v3 : EVersionType::legacy));
+						p->SetFrameType(txType.GetFrameType());
 						txlsf.CalcCRC();
 					}
 					uint8_t lich_count = frame_count % 6u;
@@ -917,13 +915,7 @@ void CCC1200::txProcess()
 
 				const CCallsign dst(p->GetCDstAddress());
 				const CCallsign src(p->GetCSrcAddress());
-				CFrameType TYPE(p->GetFrameType());
-				if ((cfg.isV3 ? EVersionType::v3 : EVersionType::legacy) != TYPE.GetVersion())
-				{
-					p->SetFrameType(TYPE.GetFrameType(cfg.isV3 ? EVersionType::v3 : EVersionType::legacy));
-					p->CalcCRC();
-				}
-				const auto can = TYPE.GetCan();
+				const auto can = CFrameType(p->GetFrameType()).GetCan();
 				const unsigned type = p->GetCPayload()[0];
 				
 				Log(EUnit::cc12, "├ DST: %s\n", dst.c_str());
@@ -1177,7 +1169,7 @@ void CCC1200::rxProcess()
 							const CCallsign dst(rxlsf.GetCDstAddress());
 							const CCallsign src(rxlsf.GetCSrcAddress());
 
-							Log(EUnit::cc12, "RF LSF DST: %s SRC: %s TYPE: %04X CAN: %d ED^2: %5.2f MER: %4.1f%%\n", dst.c_str(), src.c_str(), rxType.GetOriginType(), rxType.GetCan(), sed_lsf, float(e)*escale);
+							Log(EUnit::cc12, "RF LSF DST: %s SRC: %s TYPE: %04X CAN: %d ED^2: %5.2f MER: %4.1f%%\n", dst.c_str(), src.c_str(), rxType.GetFrameType(), rxType.GetCan(), sed_lsf, float(e)*escale);
 
 							if (EPayloadType::packet != rxType.GetPayloadType()) //if stream
 							{

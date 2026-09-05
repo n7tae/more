@@ -51,10 +51,10 @@ const char *CVersion::c_str() const
 {
 	std::stringstream ss;
 	ss << major << '.' << minor << '.' << revision;
-#ifdef DHT
+#ifndef NO_DHT
 	ss << "-dht";
 #endif
-#ifdef DVR
+#ifndef NO_DVR
 	ss << "-dvref";
 #endif
 #ifdef DEBUG
@@ -68,7 +68,7 @@ const char *CVersion::c_str() const
 std::ostream &operator <<(std::ostream &os, const CVersion &v)
 {
 	os << v.major << '.' << v.minor << '.' << v.revision;
-#ifdef DHT
+#ifndef NO_DHT
 	os << "-dht";
 #endif
 #ifdef DVR

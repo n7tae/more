@@ -268,7 +268,7 @@ bool CMspotDB::GetLS(std::string &address, uint16_t &port, std::string &target, 
 	return false;
 }
 
-bool CMspotDB::GetTarget(const char *name, EDataType &dType, ETypeVersion &tVersion, std::string &mods, std::string &smods, CSockAddress &addr)
+bool CMspotDB::GetTarget(const char *name, EDataType &dType, std::string &mods, std::string &smods, CSockAddress &addr)
 {
 	if (NULL == db)
 		return false;
@@ -291,13 +291,6 @@ bool CMspotDB::GetTarget(const char *name, EDataType &dType, ETypeVersion &tVers
 			case 'S': dType = EDataType::str_only; break;
 			case 'P': dType = EDataType::pkt_only; break;
 			case 'B': dType = EDataType::both;     break;
-		}
-		switch (sqlite3_column_text(stmt, 0)[1])
-		{
-			default:
-			case 'L': tVersion = ETypeVersion::deprecated; break;
-			case '3': tVersion = ETypeVersion::v3;         break;
-			case 'B': tVersion = ETypeVersion::both;       break;
 		}
 		mods.assign((const char *)sqlite3_column_text(stmt, 1));
 		smods.assign((const char *)sqlite3_column_text(stmt, 2));
@@ -405,7 +398,7 @@ int CMspotDB::Count(const char *table)
 	return count;
 }
 
-#ifdef DVREF
+#ifndef NO_DVREF
 using json = nlohmann::json;
 
 #define GET_STRING(a) ((a).is_string() ? a : "")
@@ -459,8 +452,12 @@ int CMspotDB::ParseJsonFile(const std::string &filepath)
 					port = ref["port"].get<uint16_t>();
 				else
 					continue;
-				if (UpdateGW(cs, "", mods, emods, ipv4, ipv6, port, GET_STRING(ref["url"])))
-					mcount++;
+				if (hasIPv6 and not ipv6.empty()) {
+					if (UpdateGW(cs, "", mods, emods, ipv6, port, GET_STRING(ref["url"])))
+						mcount++;
+				} else if (hasIPv4 and not ipv4.empty()) {
+					if (UpdateGW(cs, "", mods, emods, ipv4, port, GET_STRING(ref["url"])))
+						mcount++;
 				}
 			}
 			else if (0 == cs.substr(0,3).compare("URF"))
@@ -496,8 +493,13 @@ int CMspotDB::ParseJsonFile(const std::string &filepath)
 						}
 					}
 				}
-				if (UpdateGW(cs, "SL", mods, smods, ipv4, ipv6, port, GET_STRING(ref["url"])))
-					ucount++;
+				if (hasIPv6 and not ipv6.empty()) {
+					if (UpdateGW(cs, "SL", mods, smods, ipv6, port, GET_STRING(ref["url"])))
+						ucount++;
+				} else if (hasIPv4 and not ipv4.empty()) {
+					if (UpdateGW(cs, "SL", mods, smods, ipv4, port, GET_STRING(ref["url"])))
+						ucount++;
+				}
 			}
 		}
 		std::cout << "Loaded " << mcount << " M17 and " << ucount << " URF reflectors from " << filepath << std::endl;
